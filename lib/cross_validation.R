@@ -8,7 +8,9 @@
 
 
 cv.function <- function(X.train, y.train, d, K){
-  
+  library("gbm")
+  source("../lib/train.R")
+  source("../lib/test.R")
   n <- length(y.train)
   n.fold <- floor(n/K)
   s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
@@ -22,10 +24,17 @@ cv.function <- function(X.train, y.train, d, K){
     
     par <- list(depth=d)
     fit <- train(train.data, train.label, par)
+    
     pred <- test(fit, test.data)  
     cv.error[i] <- mean(pred != test.label)  
     
   }			
-  return(c(mean(cv.error),sd(cv.error)))
+  return(mean(cv.error))
   
 }
+
+
+
+
+
+

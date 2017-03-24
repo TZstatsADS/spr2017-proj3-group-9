@@ -22,7 +22,7 @@ for (i in 1:2000){
   path<-paste0("./data/training_data/training_data/raw_images/image_",paste(rep(0,4-n),collapse=""),i,".jpg")
   train_data[[i]]<-resize(readImage(path),128,128)
 }
-save(train_data,file="./output/train_2.Rdata")
+save(train_data,file="../output/train_2.Rdata")
 
 library(plyr)
 train_data1<-llply(train_data,thresh,offset=0.05)

@@ -1,4 +1,14 @@
+---
+title: "Project 3 - Example Main Script"
+author: "Yuting Ma, Tian Zheng"
+date: "February 24, 2016"
+output:
+  pdf_document: default
+  html_document: default
+---
+In your final repo, there should be an R markdown file that organizes **all computational steps** for evaluating your proposed image classification framework. 
 
+This file is currently a template for running evaluation experiments of image analysis (or any predictive modeling). You should update it according to your codes but following precisely the same structure. 
 
 ```{r}
 
@@ -6,19 +16,17 @@ if(!require("gbm")){
   install.packages("gbm")
 }
 
-library(gbm)
+library("gbm")
 library(adabag)
-library(data.table)
-library(dplyr)
-library(randomForest)
-library(parallel)
-library(e1071)
+
+
+```
+
+```{r}
 source("../lib/cross_validation.R")
 source("../lib/train.R")
 source("../lib/test.R")
 ```
-
-
 
 ```{r}
 sift <- data.frame(t(read.csv("../data/sift_features.csv")))
@@ -26,10 +34,9 @@ y<-c(rep(0,1000),rep(1,1000))
 s1<-data.frame(cbind(y,sift))
 pca <- data.frame(read.csv("../output/feature_pca.csv"))
 lasso<- data.frame(read.csv("../output/feature_lasso.csv"))
-hog1<- data.frame(read.csv("../output/hog1.csv"))
-hog1<- hog1[,-1]
 lasso<-lasso[,-1]
 pca<-pca[,-1]
+
 num<-apply(abs(sign(sift)),1,sum)
 ```
 
@@ -39,66 +46,166 @@ num<-apply(abs(sign(sift)),1,sum)
 
 gbm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ```{r warning=FALSE}
+err<-rep(NA,20)
 k<-3
-cl <- makeCluster(getOption("cl.cores", 8))
-err<-parLapply(cl, 1:16, cv.function,X.train=sift, y.train=y, K=k)
-plot(err)
-d<-which.min(err)
-gbmbase <- gbm.fit(x=sift, y=y,
-                     n.trees=1000,
-                     distribution="bernoulli",
-                     interaction.depth=d, 
-                     bag.fraction = 0.5,
-                     verbose=FALSE)
-save(gbmbase,file="Basicmodel.RData")
+for(i in 1:20){
+  err[i]<-cv.function(pca,y,i,k)
+}
 ```
-
-
-
-
-feature
 
 ```{r}
-load("../output/feature0.Rdata")
-feature0<-unlist(feature0)
+plot(err)
+```
+```{r}
+ sift_gbm <- gbm.fit(x=sift, y=y,
+                     n.trees=1000,
+                     distribution="bernoulli",
+                     interaction.depth=11, 
+                     bag.fraction = 0.5,
+                     verbose=FALSE)
+```
+```{r}
 
-feature<-cbind(num,feature0,hog1)
-save(feature,file="feature.RData")
+ada<-rpart(y~.,data=s1)
+n<-names(ada$variable.importance)
+select<-as.numeric(substr(n,2,nchar(n)))
+f1<-cbind(pca,sift[,select])
+```
+
+```{r warning=FALSE}
+err2<-rep(NA,20)
+k<-3
+for(i in 1:20){
+  err2[i]<-cv.function(f1,y,i,k)
+}
+plot(err2)
 ```
 
 
 
+```{r warning=FALSE}
+err3<-rep(NA,20)
+k<-3
+cl <- makeCluster(getOption("cl.cores", 8))
+err4 <- clusterApply(cl, 1:20,  cv.function,X.train=f1, y.train=y, K=k)
+#for(i in 1:20){
+#  err3[i]<-cv.function(sift[,select],y,i,k)
+#}
+err4<-unlist(err4)
+plot(err4)
 
+```
+
+
+```{r warning=FALSE}
+f2<-cbind(f1,lasso)
+k<-3
+cl <- makeCluster(getOption("cl.cores", 8))
+err5 <- parLapply(cl, 1:20,  cv.function,X.train=f2, y.train=y, K=k)
+#for(i in 1:20){
+#  err3[i]<-cv.function(sift[,select],y,i,k)
+#}
+err5<-unlist(err5)
+plot(err5)
+
+```
+
+
+
+knn!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+```{r}
+library(e1071)
+library(class)
+p<-rep(NA,20)
+for(i in 1:20){
+  result<-knn.cv(f2,y,k=i)
+  percent<-as.numeric(result==y)
+  p[i]<-1-sum(percent)/2000
+}
+plot(p)
+
+```
 
 
 random forest!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 ```{r}
+library(data.table)
+library(dplyr)
+library(randomForest)
+library(parallel)
+
+ 
+
+
+
+### random forest test
+
+
+
+rf.cv.function <- function(X.train, y.train,d,ntree=1000,mtry=sqrt(ncol(X.train)),K=5){
+  source("../lib/train.R")
+  source("../lib/test.R")
+  n <- length(y.train)
+  n.fold <- floor(n/K)
+  s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
+  cv.error <- rep(NA, K)
+  
+  for (i in 1:K){
+    train.data <- X.train[s != i,]
+    train.label <- y.train[s != i]
+    test.data <- X.train[s == i,]
+    test.label <- y.train[s == i]
+    
+    fit <- rf_train(train.data, train.label, ntree=ntree,mtry=mtry,node=d)
+    pred <- rf_test(fit, test.data)  
+    cv.error[i] <- mean(pred != test.label)  
+    
+  }			
+  return(mean(cv.error))
+}
 
 t1<-Sys.time()
 cl <- makeCluster(getOption("cl.cores", 8))
-rderr1 <- parLapply(cl, 1:8,  rf.cv.function,X.train=feature, y.train=y,ntree=1000, K=k)
-rderr1<-unlist(rderr1)
-plot(rderr1)
+
+rderr <- parLapply(cl, 1:16,  rf.cv.function,X.train=f2, y.train=y, K=k)
+rderr<-unlist(rderr)
+plot(rderr)
+t2<-Sys.time()
+t2-t1
+#index <- sample(1:2000,1800,replace = F)
+#traindata <- data[index,]
+#testdata <- data[-index,]
+#trainlabel <- label[index]
+#testlabel <- label[-index]
+#model <- rf_train(traindata,trainlabel,ntree = 500,mtry=sqrt(ncol(traindata)))
+#mean(rf_test(model,testdata)!=testlabel)
+
+
+```
+
+```{r}
+f3<-cbind(num,f2)
+t1<-Sys.time()
+cl <- makeCluster(getOption("cl.cores", 8))
+
+rderr2 <- parLapply(cl, 1:16,  rf.cv.function,X.train=f3, y.train=y, K=k)
+rderr2<-unlist(rderr2)
+plot(rderr2)
 t2<-Sys.time()
 t2-t1
 ```
-
-
-
-
 ```{r}
-rf_fit <- randomForest(x=feature,y=as.factor(y),
-                         importance=TRUE, 
-                         ntree=1000,
-                         nodesize=3)
-save(rf_fit,file="Advancemodel.RData")
-```
+load("../output/feature0.Rdata")
+feature0<-unlist(feature0)
+f4<-cbind(feature0,f3)
+t1<-Sys.time()
+cl <- makeCluster(getOption("cl.cores", 8))
 
-
-```{r}
-pred<-rf_test(rf_fit,feature)
-mean(pred==y)
+rderr3 <- parLapply(cl, 1:16,  rf.cv.function,X.train=f4, y.train=y, K=k)
+rderr3<-unlist(rderr3)
+plot(rderr3)
+t2<-Sys.time()
+t2-t1
 ```
 

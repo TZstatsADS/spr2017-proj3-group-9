@@ -26,11 +26,10 @@ y<-c(rep(0,1000),rep(1,1000))
 s1<-data.frame(cbind(y,sift))
 pca <- data.frame(read.csv("../output/feature_pca.csv"))
 lasso<- data.frame(read.csv("../output/feature_lasso.csv"))
-hog<- data.frame(read.csv("../output/hog.csv"))
-hog<- hog[,-1]
+hog1<- data.frame(read.csv("../output/hog1.csv"))
+hog1<- hog1[,-1]
 lasso<-lasso[,-1]
 pca<-pca[,-1]
-
 num<-apply(abs(sign(sift)),1,sum)
 ```
 
@@ -40,39 +39,31 @@ num<-apply(abs(sign(sift)),1,sum)
 
 gbm!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ```{r warning=FALSE}
-err<-rep(NA,20)
 k<-3
-for(i in 1:20){
-  err[i]<-cv.function(pca,y,i,k)
-}
+cl <- makeCluster(getOption("cl.cores", 8))
+err<-parLapply(cl, 1:16, cv.function,X.train=sift, y.train=y, K=k)
 plot(err)
-```
-
-```{r}
- gbmbase <- gbm.fit(x=sift, y=y,
+d<-which.min(err)
+gbmbase <- gbm.fit(x=sift, y=y,
                      n.trees=1000,
                      distribution="bernoulli",
-                     interaction.depth=11, 
+                     interaction.depth=d, 
                      bag.fraction = 0.5,
                      verbose=FALSE)
+save(gbmbase,file="Basicmodel.RData")
 ```
+
 
 
 
 feature
 
 ```{r}
-ada<-rpart(y~.,data=s1)
-n<-names(ada$variable.importance)
-select<-as.numeric(substr(n,2,nchar(n)))
-
-k<-3
-
 load("../output/feature0.Rdata")
 feature0<-unlist(feature0)
 
-feature<-cbind(pca,sift[,select],lasso,num,feature0)
-
+feature<-cbind(num,feature0,hog1)
+save(feature,file="feature.RData")
 ```
 
 
@@ -84,10 +75,10 @@ random forest!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 ```{r}
-f.test<-cbind(feature,hog)
+
 t1<-Sys.time()
 cl <- makeCluster(getOption("cl.cores", 8))
-rderr1 <- parLapply(cl, 1:8,  rf.cv.function,X.train=f.test, y.train=y,ntree=1000, K=k)
+rderr1 <- parLapply(cl, 1:8,  rf.cv.function,X.train=feature, y.train=y,ntree=1000, K=k)
 rderr1<-unlist(rderr1)
 plot(rderr1)
 t2<-Sys.time()
@@ -98,14 +89,16 @@ t2-t1
 
 
 ```{r}
-
 rf_fit <- randomForest(x=feature,y=as.factor(y),
                          importance=TRUE, 
                          ntree=1000,
-                         nodesize=2)
+                         nodesize=3)
+save(rf_fit,file="Advancemodel.RData")
 ```
 
-```{r}
 
+```{r}
+pred<-rf_test(rf_fit,feature)
+mean(pred==y)
 ```
 

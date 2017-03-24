@@ -1,0 +1,21 @@
+---
+title: "xgboost"
+author: "Yaqin Li (yl3578)"
+date: "2017年3月21日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("xgboost")
+require(xgboost)
+d<-read.csv("../../training_data/sift_features/sift_features.csv")
+d<-t(d)
+label<-c(rep(0,1000),rep(1,1000))
+
+bst<-xgboost(d,label,max.depth=2,eta=1,nround=2,objective="binary:logistic")
+
+```

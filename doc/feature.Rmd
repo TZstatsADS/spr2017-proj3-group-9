@@ -1,0 +1,72 @@
+---
+title: "feature"
+author: "Yaqin Li (yl3578)"
+date: "2017年3月20日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+if(!require("EBImage")){
+  source("https://bioconductor.org/biocLite.R")
+  biocLite("EBImage")
+}
+library(EBImage)
+```
+
+
+##PCA
+```{r}
+train_data<-list()
+for (i in 1:2000){
+  n<-nchar(as.character(i))
+  path<-paste0("../../training_data/raw_images/image_",paste(rep(0,4-n),collapse=""),i,".jpg")
+  train_data[[i]]<-resize(readImage(path),40,40)
+}
+save(train_data,file="../output/train_resize.Rdata")
+display(train_data[[1400]])
+library(plyr)
+train_data1<-llply(train_data,thresh,w=2,h=2,offset=0.06)
+display(train_data1[[1400]])
+trf_df<-function(X){
+  return(as.vector(unlist(X)))
+}
+train_data2<-ldply(train_data,trf_df)
+
+pca<-prcomp(train_data2,center=TRUE,scale=TRUE)
+plot(pca)
+
+prepca<-predict(pca,newdata=train_data2)
+dim(prepca)
+write.csv(prepca[,1:10],file="../output/feature_pca.csv")
+```
+
+
+##LASSO
+
+```{r}
+#train_data_new<-list()
+#for (i in 1:2000){
+#  n<-nchar(as.character(i))
+#  path<-paste0("../../training_data/raw_images/image_",paste(rep(0,4-n),collapse=""),i,".jpg")
+#  train_data_new[[i]]<-resize(readImage(path),128,128)
+#}
+#save(train_data_new,file="../output/train_resize_new.Rdata")
+load("../output/train_resize_new.RData")
+train2_data<-as.matrix(ldply(train_data_new,trf_df))
+library(glmnet)
+library(foreach)
+library(Matrix)
+label<-c(rep(0,1000),rep(1,1000))
+gt<-cv.glmnet(train2_data,label,nfolds=10)
+plot(gt)
+gt.coef<-coef(gt$glmnet.fit,s=gt$lambda.1se)
+gt.coef
+col<-rownames(gt.coef)[which(gt.coef != 0)]
+feature_l<-train2_data[,col[-1]]
+write.csv(feature_l,file="../output/feature_lasso.csv")
+
+```

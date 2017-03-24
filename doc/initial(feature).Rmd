@@ -1,0 +1,24 @@
+---
+title: "initial(feature)"
+author: "Yaqin Li (yl3578)"
+date: "2017年3月18日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(e1071)
+data0<-read.csv("../../training_data/sift_features/sift_features.csv",header=TRUE)
+data1<-data.frame(t(data0))
+data1$label<-c(rep(1,1000),rep(0,1000))
+```
+
+
+```{r}
+data2<-data1[,-3234]
+data2<-data2[,-2488]
+svm1<-tune.svm(label~.,data=data2,cost=seq(1,4,1),gamma=0.001*(1:10))
+```

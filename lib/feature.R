@@ -1,39 +1,61 @@
-#############################################################
-### Construct visual features for training/testing images ###
-#############################################################
 
-### Authors: Yuting Ma/Tian Zheng
-### Project 3
-### ADS Spring 2017
-
-feature <- function(img_dir, set_name, data_name="data", export=T){
+feature <- function(img_dir,img_name,data_name="data", export=T){
+  path0 <- paste0(img_dir,"/sift_features.csv",collapse = "")
+  features1<-read.csv(path0)
+  features2<-t(features1)
   
-  ### Construct process features for training/testing images
-  ### Sample simple feature: Extract row average raw pixel values as features
-  
-  ### Input: a directory that contains images ready for processing
-  ### Output: an .RData file contains processed features for the images
-  
-  ### load libraries
-  library("EBImage")
-  
-  n_files <- length(list.files(img_dir))
-  
-  ### determine img dimensions
-  img0 <-  readImage(paste0(img_dir, "img", "_", data_name, "_", set_name, "_", 1, ".jpg"))
-  mat1 <- as.matrix(img0)
-  n_r <- nrow(img0)
-  
-  ### store vectorized pixel values of images
-  dat <- matrix(NA, n_files, n_r) 
-  for(i in 1:n_files){
-    img <- readImage(paste0(img_dir,  "img", "_", data_name, "_", set_name, "_", i, ".jpg"))
-    dat[i,] <- rowMeans(img)
+  train_data<-list()
+  for (i in 1:2000){
+    n<-nchar(as.character(i))
+    path<-paste0(img_dir,"/",img_name,"_",paste(rep(0,4-n),collapse=""),i,".jpg")
+    train_data[[i]]<-resize(readImage(path),128,128)
   }
   
-  ### output constructed features
+  
+  
+  library(plyr)
+  train_data1<-llply(train_data,thresh,offset=0.05)
+  train_data2<-llply(train_data1,opening,kern=makeBrush(1, shape='disc'))
+  
+  portion_count<-function(data){
+    data4<-imageData(data)
+    p1<-as.numeric(data4[1:10,]==1)
+    p2<-as.numeric(data4[119:128,]==1)
+    p3<-as.numeric(data4[,1:10]==1)
+    p4<-as.numeric(data4[,119:128]==1)
+    por<-100*(sum(p1)+sum(p2)+sum(p3)+sum(p4))/(1280*4)
+    return(por)
+    
+  }
+  
+  fea<-llply(train_data2,portion_count)
+  feature0<-as.vector(fea)
+  feature0<-unlist(feature0)
+  
+  
+  #non-zero feature
+  
+  num<-apply(abs(sign(features1)),1,sum)
+  
+  
+  
+  # using HOG to get features
+  #install.packages("OpenImageR")
+  library(OpenImageR)
+  
+  hog <- vector()
+  
+  for (i in 1:2000){
+    hog <- rbind(hog,HOG(train_data[[i]]))
+  }
+  
+  feature <- cbind(num,feature0,hog)
+  
   if(export){
-    save(dat, file=paste0("../output/feature_", data_name, "_", set_name, ".RData"))
+    save(feature,file="../output/featurenew.Rdata")
   }
-  return(dat)
+  
+  
+  return(feature)
+  
 }

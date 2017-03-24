@@ -49,7 +49,9 @@ In our project we use `SIFT feature` and `GBM model` as our baseline model. Sinc
 #                      interaction.depth=d, 
 #                      bag.fraction = 0.5,
 #                      verbose=FALSE)
-# save(gbmbase,file="Basicmodel.RData")
+#best_iter <- gbm.perf(gbmbase, method="OOB", plot.it = FALSE)
+#gbmbase1<-list(fit=gbmbase, iter=best_iter)
+#save(gbmbase1,file="Basicmodel.RData")
 ```
 The error rate for our baseline model is about 27.32%. 
 Based on the raw SIFT features, we have tried Xgboost, Random Forest, GBM, KNN, SVM models. After checking the error rate we find that the most effective model is the Random Forest.
@@ -118,12 +120,19 @@ train.time<-t2-t1
 ### Step5: Make prediction 
 Feed the final training model with the completely holdout testing data. 
 ```{r test}
-# load("Advancemodel.Rdata")
-# t1<-Sys.time()
-# pred<-rf_test(rf_fit,fea.test)
-# test.err<-1-mean(pred==y)
-# t2<-Sys.time()
-# pred.time<-t2-t1
+# tt<-data.frame(read.csv("111.csv"))
+# tt<-tt[,-1]
+# colnames(tt)<-colnames(feature)
+# pred<-rf_test(rf_fit,tt)
+# save(pred,file="111.RData")
+# tt1<-data.frame(t(read.csv("sift_features.csv")))
+# best_iter <- gbm.perf(gbmbase, method="OOB", plot.it = FALSE)
+# gbmbase1<-list(fit=gbmbase, iter=best_iter)
+# pred1<-predict(gbmbase1$fit, newdata=tt1, 
+#                   n.trees=gbmbase1$iter, type="response")
+# 
+# pred1<-as.numeric(pred1>0.5)
+# save(pred1,file="222.RData")
 
 ```
 

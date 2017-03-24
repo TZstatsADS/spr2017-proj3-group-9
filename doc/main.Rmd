@@ -66,10 +66,10 @@ feature.time<-t2-t1
 
 #test data
 # t1<-Sys.time()
-# fea.test<-feature("../data/training_data/training_data/test_images","image")
+# fea.test<-feature("../data/test_data/test_data/raw_images","image")
 # t2<-Sys.time()
 # feature.time.test<-t2-t1
-
+# write.csv(fea.test,file = "111.csv")
 ```
 
 ###Explaination of our personalized features.
@@ -97,16 +97,6 @@ ggplot(data = error1) +
   geom_point(mapping = aes(x = depth, y = rd_err))+
   labs(title = "Cross Validation Error Rate", x = "Depth", y = "Error Rate")
 
-
-
-# rd_err.test <- parLapply(cl, 1:8,  rf.cv.function,X.train=fea.test, y.train=y,ntree=1000, K=k)
-# rd_err<-unlist(rd_err.test)
-# err<-c(rd_err,rd_err.test)
-# error.combine<-data.frame(depth,rd_err,class)
-#ggplot(data = error.combine) +
-  #geom_point(mapping = aes(x = depth, y = err,fill=class))
-  #labs(title = "Cross Validation Error Rate", x = "Depth", y = "Error Rate")
-
 ```
 
 ### Step 4: Summarize Running Time
@@ -128,11 +118,13 @@ train.time<-t2-t1
 ### Step5: Make prediction 
 Feed the final training model with the completely holdout testing data. 
 ```{r test}
+# load("Advancemodel.Rdata")
 # t1<-Sys.time()
 # pred<-rf_test(rf_fit,fea.test)
 # test.err<-1-mean(pred==y)
 # t2<-Sys.time()
 # pred.time<-t2-t1
+
 ```
 
 ### Step6: Summarize Running Time

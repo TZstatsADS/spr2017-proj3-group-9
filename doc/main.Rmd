@@ -146,4 +146,4 @@ cat("Time for training model=", train.time, "s \n")
 ```
 
 ### Attention! CNN deep learning part
-[CNN](doc/CNN_Draft-IS.R) About this project, we have tried some new methods through Python. One of our teammates, Imroze is really good at deep learning part. So we built an CNN model together and find that the prediction result is really good. But since as the professor mentioned that this project does not focus on the deep learning part, and we also find some difficulties to get the output result in less than half an hour, so we didn't combine that part in our R models. It turns a really good result based on the trainning image.
+[CNN](doc/CNN_Draft-IS.R) About this project, we have tried some new methods through Python. 

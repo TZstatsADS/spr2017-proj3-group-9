@@ -10,7 +10,7 @@ Term: Spring 2017
 	+ team member 1: Liangbin Chen
 	+ team member 2: Yaqin Li
 	+ team member 3: Tongyue Liu
-	+ team member 4: Imroze Shaheen 
+	+ team member 4: 
 	+ team member 5: Zheren Tang
 
 + Project summary: In this project, we created a classification engine for grayscale images of poodles versus images of fried chickens. 
